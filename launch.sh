@@ -56,7 +56,7 @@ AUTO_SCALING_GROUP_NAME='ITMO544MPFINALASG'
 EMAIL_ID='vsadayam@hawk.iit.edu'
 
 #Create SNS topic for image upload subscriptions
-SNS_CLOUD_WATCH_DISPLAYNAME=MP2CloudWatchSubscriptions
+SNS_CLOUD_WATCH_DISPLAYNAME='MPFinalCloudWatchSubscriptions'
 SNS_TOPIC_CLOUD_WATCH_ARN=(`aws sns create-topic --name $SNS_CLOUD_WATCH_DISPLAYNAME`)
 aws sns set-topic-attributes --topic-arn $SNS_TOPIC_CLOUD_WATCH_ARN --attribute-name DisplayName --attribute-value $SNS_CLOUD_WATCH_DISPLAYNAME
 aws sns subscribe --topic-arn $SNS_TOPIC_CLOUD_WATCH_ARN --protocol email --notification-endpoint $EMAIL_ID
@@ -76,7 +76,7 @@ echo "Created LAUNCH CONFIGURATION and AUTO SCALING GROUP"
 
 #step 9
 #Create SNS topic for image upload subscriptions
-SNS_IMAGE_DISPLAYNAME=MP2ImageSubscriptions
+SNS_IMAGE_DISPLAYNAME='MPFinalImageSubscriptions'
 SNS_TOPIC_IMAGE_ARN=(`aws sns create-topic --name $SNS_IMAGE_DISPLAYNAME`)
 aws sns set-topic-attributes --topic-arn $SNS_TOPIC_IMAGE_ARN --attribute-name DisplayName --attribute-value $SNS_IMAGE_DISPLAYNAME    
 
