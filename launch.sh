@@ -11,7 +11,7 @@
 
 #Step 3
 #declare a variable
-mapfile -t instanceARR < <(aws ec2 run-instances --image-id $1 --count $2 --instance-type $3 --key-name $6 --security-group-ids $4 --subnet-id $5 --associate-public-ip-address --iam-instance-profile Name=$7 --user-data file://../ITMO-544-MP2-Environment-Setup/install-webserver.sh --output table | grep InstanceId | sed "s/|//g" | tr -d ' ' | sed "s/InstanceId//g")
+mapfile -t instanceARR < <(aws ec2 run-instances --image-id $1 --count $2 --instance-type $3 --key-name $6 --security-group-ids $4 --subnet-id $5 --associate-public-ip-address --iam-instance-profile Name=$7 --user-data file://../ITMO-544-MP-Final-Environment-Setup/install-webserver.sh --output table | grep InstanceId | sed "s/|//g" | tr -d ' ' | sed "s/InstanceId//g")
 
 echo ${instanceARR[@]}
 
@@ -21,7 +21,7 @@ echo "Instance are running"
 
 #Step 4
 #Creating  Load balancer 
-LOAD_BALANCER_NAME='ITMO544MP2ELB'
+LOAD_BALANCER_NAME='ITMO544MPFINALELB'
 
 ELBURL=(`aws elb create-load-balancer --load-balancer-name $LOAD_BALANCER_NAME --listeners Protocol=HTTP,LoadBalancerPort=80,InstanceProtocol=HTTP,InstancePort=80 --security-groups $4 --subnets $5 --output=text`);
 echo $ELBURL
@@ -38,14 +38,21 @@ aws elb register-instances-with-load-balancer --load-balancer-name $LOAD_BALANCE
 #Health Check configuration
 aws elb configure-health-check --load-balancer-name $LOAD_BALANCER_NAME --health-check Target=HTTP:80/index.html,Interval=30,UnhealthyThreshold=2,HealthyThreshold=2,Timeout=3
 
+
+#Step 7
+#Add ELB session stickiness policy 
+COOKIE_POLICY_NAME='ITMO544MPFINALCP'
+aws elb create-lb-cookie-stickiness-policy --load-balancer-name $LOAD_BALANCER_NAME --policy-name $COOKIE_POLICY_NAME
+aws elb set-load-balancer-policies-of-listener --load-balancer-name $LOAD_BALANCER_NAME --load-balancer-port 80 --policy-names $COOKIE_POLICY_NAME
+
 echo -e "\n waiting for an extra 3 minutes before opening elb in browser"
 for i in {0..180}; do echo -ne '.'; sleep 1;done
 echo "\n"
 
-#Step 7
+#Step 8
 #Creating launch configuration and auto scaling group
-LAUNCH_CONFIGURATION_NAME='ITMO544MP2LC'
-AUTO_SCALING_GROUP_NAME='ITMO544MP2ASG'
+LAUNCH_CONFIGURATION_NAME='ITMO544MPFINALLC'
+AUTO_SCALING_GROUP_NAME='ITMO544MPFINALASG'
 EMAIL_ID='vsadayam@hawk.iit.edu'
 
 #Create SNS topic for image upload subscriptions
@@ -54,7 +61,7 @@ SNS_TOPIC_CLOUD_WATCH_ARN=(`aws sns create-topic --name $SNS_CLOUD_WATCH_DISPLAY
 aws sns set-topic-attributes --topic-arn $SNS_TOPIC_CLOUD_WATCH_ARN --attribute-name DisplayName --attribute-value $SNS_CLOUD_WATCH_DISPLAYNAME
 aws sns subscribe --topic-arn $SNS_TOPIC_CLOUD_WATCH_ARN --protocol email --notification-endpoint $EMAIL_ID
 
-aws autoscaling create-launch-configuration --launch-configuration-name $LAUNCH_CONFIGURATION_NAME --image-id $1 --key-name $6 --security-groups $4 --instance-type $3 --user-data file://../ITMO-544-MP2-Environment-Setup/install-webserver.sh --iam-instance-profile $7
+aws autoscaling create-launch-configuration --launch-configuration-name $LAUNCH_CONFIGURATION_NAME --image-id $1 --key-name $6 --security-groups $4 --instance-type $3 --user-data file://../ITMO-544-MP-Final-Environment-Setup/install-webserver.sh --iam-instance-profile $7
 aws autoscaling create-auto-scaling-group --auto-scaling-group-name $AUTO_SCALING_GROUP_NAME --launch-configuration-name $LAUNCH_CONFIGURATION_NAME --load-balancer-names $LOAD_BALANCER_NAME --health-check-type ELB --min-size 3 --max-size 6 --desired-capacity 3 --default-cooldown 300 --health-check-grace-period 120 --vpc-zone-identifier $5
 
 #Create auto scaling policy to monitor  when CPU usage is above or equal to 30 percent 
@@ -67,7 +74,7 @@ aws cloudwatch put-metric-alarm --alarm-name REMOVEINSTANCE --alarm-description 
 
 echo "Created LAUNCH CONFIGURATION and AUTO SCALING GROUP"
 
-#step 8
+#step 9
 #Create SNS topic for image upload subscriptions
 SNS_IMAGE_DISPLAYNAME=MP2ImageSubscriptions
 SNS_TOPIC_IMAGE_ARN=(`aws sns create-topic --name $SNS_IMAGE_DISPLAYNAME`)
